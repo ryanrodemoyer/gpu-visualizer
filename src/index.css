@@ -18,6 +18,11 @@
   --good: #0d7d3f;
   --critical: #c62a2a;
   --critical-soft: rgba(198, 42, 42, 0.14);
+  --gpu-1: #6250d6;
+  --gpu-2: #eda100;
+  --gpu-3: #e87ba4;
+  --gpu-4: #008300;
+  --gpu-5: #e34948;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: 'tnum' 1;
@@ -44,6 +49,11 @@
     --good: #3fb871;
     --critical: #ef6a6a;
     --critical-soft: rgba(239, 106, 106, 0.16);
+    --gpu-1: #9085e9;
+    --gpu-2: #c98500;
+    --gpu-3: #d55181;
+    --gpu-4: #008300;
+    --gpu-5: #e66767;
     --shadow: none;
   }
 }
@@ -68,6 +78,11 @@
   --good: #3fb871;
   --critical: #ef6a6a;
   --critical-soft: rgba(239, 106, 106, 0.16);
+  --gpu-1: #9085e9;
+  --gpu-2: #c98500;
+  --gpu-3: #d55181;
+  --gpu-4: #008300;
+  --gpu-5: #e66767;
   --shadow: none;
 }
 
@@ -165,6 +180,24 @@ table.data th, table.data td { text-align: right; padding: 6px 8px; border-botto
 table.data th:first-child, table.data td:first-child { text-align: left; }
 table.data th { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
 .table-scroll { overflow-x: auto; }
+
+/* context charts */
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.chart { padding: 16px; min-width: 0; }
+.chart h3 { margin: 0; font-size: 14px; }
+.chart .sub { margin: 4px 0 10px; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.chart svg { display: block; overflow: visible; }
+.chart .grid line { stroke: var(--border); stroke-width: 1; }
+.chart .grid text, .chart .dl { font-size: 11px; fill: var(--text-secondary); }
+.chart .dl { font-weight: 600; }
+.chart .now { stroke: var(--text-primary); stroke-width: 1.5; stroke-dasharray: 2 3; }
+.chart .cross { stroke: var(--text-muted); stroke-width: 1; }
+.tip-inline { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 11.5px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.14); color: var(--text-primary); }
+.tip-inline b { display: block; }
+.tip-inline i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.gpu-name { display: flex; align-items: center; gap: 7px; }
+@media (max-width: 860px) { .charts { grid-template-columns: 1fr; } }
 
 footer { margin-top: 24px; font-size: 12px; color: var(--text-muted); text-align: center; }
 footer a { color: inherit; }

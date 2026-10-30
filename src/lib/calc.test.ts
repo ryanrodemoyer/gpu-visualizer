@@ -5,7 +5,7 @@ import { kvTypeById, quantById } from '../data/quants'
 import { LLAMA2_7B_Q4_0 } from '../data/benchmarks'
 import { paramBreakdown } from './params'
 import {
-  DEFAULT_SETTINGS, GiB, decodeTokensPerSec, kvCacheBytes, memoryPlan, weightBytes, type Settings,
+  DEFAULT_SETTINGS, GiB, decodeTokensPerSec, kvCacheBytes, memoryNeeded, memoryPlan, weightBytes, type Settings,
 } from './calc'
 
 const model = (id: string) => modelById(id)!
@@ -87,6 +87,13 @@ describe('memory plan', () => {
     expect(max).toBeGreaterThan(8192)
     expect(memoryPlan(gpu, m, { ...s, context: max }).fits).toBe(true)
     expect(memoryPlan(gpu, m, { ...s, context: max + 512 }).fits).toBe(false)
+  })
+  it('the context chart breakdown agrees with the plan', () => {
+    const gpu = gpuById('rtx-4090')!
+    const m = model('gemma-3-27b')
+    const s = llamaSettings({ context: 16384, parallel: 2 })
+    const n = memoryNeeded(m, s, s.context)
+    expect(n.base + n.weights + n.kv + n.compute).toBeCloseTo(memoryPlan(gpu, m, s).used, 0)
   })
   it('turning off flash attention costs compute buffer memory', () => {
     const gpu = gpuById('rtx-4090')!

@@ -6,6 +6,7 @@ import {
   type MemoryPlan, type SegmentKey, type Settings,
 } from '../lib/calc'
 import { fmtTokens } from './Controls'
+import { GPU_COLORS } from './ContextCharts'
 
 const SEG_COLOR: Record<SegmentKey, string> = {
   reserved: 'var(--seg-reserved)',
@@ -31,14 +32,15 @@ const gib = (b: number) => (b / GiB).toFixed(b < 10 * GiB ? 2 : 1)
 
 interface Tip { x: number; y: number; title: string; body: string; value: string }
 
-export function Comparison({ gpus, model, settings }: { gpus: Gpu[]; model: Model; settings: Settings }) {
+export function Comparison({ gpus, slots, model, settings }: { gpus: Gpu[]; slots: number[]; model: Model; settings: Settings }) {
   const [tip, setTip] = useState<Tip | null>(null)
   const [showTable, setShowTable] = useState(false)
 
   if (gpus.length === 0) return <section className="card empty">Add a GPU above to start comparing.</section>
 
-  const rows = gpus.map(gpu => ({
+  const rows = gpus.map((gpu, i) => ({
     gpu,
+    slot: slots[i],
     plan: memoryPlan(gpu, model, settings),
     tps: decodeTokensPerSec(gpu, model, settings, 0),
     tpsFull: decodeTokensPerSec(gpu, model, settings, settings.context),
@@ -72,11 +74,11 @@ export function Comparison({ gpus, model, settings }: { gpus: Gpu[]; model: Mode
 
       {showTable ? <DataTable rows={rows} isVllm={isVllm} /> : (
         <>
-          {rows.map(({ gpu, plan, tps, tpsFull, pp }) => (
+          {rows.map(({ gpu, slot, plan, tps, tpsFull, pp }) => (
             <div className="gpu-row" key={gpu.id}>
               <div className="gpu-head">
                 <div>
-                  <div className="gpu-name">{gpu.name}</div>
+                  <div className="gpu-name"><i className="dot" style={{ background: GPU_COLORS[slot] }} />{gpu.name}</div>
                   <div className="gpu-spec">{gpu.vramGiB} GB {gpu.memoryType} · {fmtBw(gpu.bandwidthGBs)}</div>
                 </div>
                 <Verdict plan={plan} />
@@ -180,7 +182,7 @@ function Kpi({ k, v, unit, s }: { k: string; v: string; unit?: string; s?: strin
   )
 }
 
-type Row = { gpu: Gpu; plan: MemoryPlan; tps: number; tpsFull: number; pp: number | null }
+type Row = { gpu: Gpu; slot: number; plan: MemoryPlan; tps: number; tpsFull: number; pp: number | null }
 
 function DataTable({ rows, isVllm }: { rows: Row[]; isVllm: boolean }) {
   const keys = rows[0].plan.segments.map(s => s.key)

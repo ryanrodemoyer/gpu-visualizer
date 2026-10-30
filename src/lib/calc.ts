@@ -136,6 +136,28 @@ export function memoryPlan(gpu: Gpu, m: Model, s: Settings): MemoryPlan {
   return s.engine === 'vllm' ? vllmPlan(capacity, m, s) : llamaCppPlan(capacity, m, s)
 }
 
+/** Memory the settings need at a given per-sequence context, split for charting. */
+export function memoryNeeded(m: Model, s: Settings, ctx: number) {
+  const base = s.reservedBytes + RUNTIME_OVERHEAD_BYTES
+  const weights = weightBytes(m, s.quant)
+  if (s.engine === 'vllm') {
+    return {
+      base, weights,
+      compute: vllmActivationBytes(m, s.batchedTokens, 1) + VLLM_CUDA_GRAPH_BYTES,
+      kv: kvCacheBytes(m, s.kvType, ctx, s.parallel, 0),
+    }
+  }
+  return {
+    base, weights,
+    compute: llamaCppComputeBytes(m, ctx, s.parallel, s.ubatch, s.flashAttn),
+    kv: kvCacheBytes(m, s.kvType, ctx, s.parallel, s.ubatch),
+  }
+}
+
+/** VRAM the engine may use: all of it for llama.cpp, the utilization share for vLLM. */
+export const usableCapacity = (gpu: Gpu, s: Settings) =>
+  gpu.vramGiB * GiB * (s.engine === 'vllm' ? s.gpuMemUtil : 1)
+
 function llamaCppFixed(m: Model, s: Settings) {
   return s.reservedBytes + RUNTIME_OVERHEAD_BYTES + weightBytes(m, s.quant)
 }
