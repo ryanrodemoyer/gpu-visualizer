@@ -1,32 +1,27 @@
-# React + TypeScript + Vite
+# GPU VRAM Visualizer
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Pick a model, a quantization and the settings you'd pass to llama.cpp or vLLM, then compare GPUs side by side: how VRAM splits into weights, KV cache, compute buffers and runtime overhead, the longest context that fits, and estimated tokens/sec.
 
-Currently, two official plugins are available:
+Live site: https://ryanrodemoyer.github.io/gpu-visualizer/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## How it's grounded
 
-## React Compiler
+- **GPUs** (`src/data/gpus.ts`): VRAM and bandwidth from vendor spec sheets / TechPowerUp, with a source per row.
+- **Models** (`src/data/models.ts`): architectures copied from each model's Hugging Face `config.json`. Parameter counts are derived from the architecture and tested against published totals.
+- **Quants** (`src/data/quants.ts`): GGUF bits-per-weight measured from real files, tested against 20 GGUF file sizes.
+- **Speed** (`src/lib/calc.ts`): bandwidth-bound decode model fit to the [llama.cpp CUDA scoreboard](https://github.com/ggml-org/llama.cpp/discussions/15013) and tested to within 10% of measured results.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Develop
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm install
+npm run dev     # local dev server
+npm test        # calculator test suite
+npm run build   # static build in dist/
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Pushes to `main` run the tests and deploy to GitHub Pages.
+
+## License
+
+MIT

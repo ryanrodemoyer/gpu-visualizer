@@ -229,11 +229,14 @@ export const DECODE_EFFICIENCY = 0.89
 export const DECODE_EFFICIENCY_HBM = 0.48
 export const PER_LAYER_OVERHEAD_S = 34e-6
 
+/** Bytes streamed from VRAM to generate one token with `depth` tokens already in context. */
+export function bytesPerToken(m: Model, s: Settings, depth = 0): number {
+  return activeWeightBytes(m, s.quant) + kvCacheBytes(m, s.kvType, Math.max(depth, 1), 1, 0)
+}
+
 export function decodeTokensPerSec(gpu: Gpu, m: Model, s: Settings, depth = 0): number {
-  const weights = activeWeightBytes(m, s.quant)
-  const kvRead = kvCacheBytes(m, s.kvType, Math.max(depth, 1), 1, 0)
   const eff = gpu.memoryType.startsWith('HBM') ? DECODE_EFFICIENCY_HBM : DECODE_EFFICIENCY
-  const seconds = (weights + kvRead) / (gpu.bandwidthGBs * 1e9 * eff) + m.layers * PER_LAYER_OVERHEAD_S
+  const seconds = bytesPerToken(m, s, depth) / (gpu.bandwidthGBs * 1e9 * eff) + m.layers * PER_LAYER_OVERHEAD_S
   return 1 / seconds
 }
 

@@ -1,122 +1,112 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useMemo, useState } from 'react'
+import { GPUS, gpuById } from './data/gpus'
+import { MODELS, modelById, type Model } from './data/models'
+import { KV_TYPES, QUANTS, kvTypeById, quantById, type Engine } from './data/quants'
+import { DEFAULT_SETTINGS, GiB, type Settings } from './lib/calc'
+import { paramBreakdown } from './lib/params'
+import { Controls } from './components/Controls'
+import { GpuPicker } from './components/GpuPicker'
+import { Comparison } from './components/Comparison'
+import { Methodology } from './components/Methodology'
 
-function App() {
-  const [count, setCount] = useState(0)
+export interface AppState {
+  engine: Engine
+  modelId: string
+  quantId: string
+  kvTypeId: string
+  context: number
+  parallel: number
+  ubatch: number
+  flashAttn: boolean
+  gpuMemUtil: number
+  batchedTokens: number
+  reservedGiB: number
+  gpuIds: string[]
+}
+
+export function defaultQuantFor(engine: Engine, m: Model): string {
+  if (m.defaultQuant === 'mxfp4') return engine === 'vllm' ? 'vllm-mxfp4' : 'mxfp4'
+  return engine === 'vllm' ? 'vllm-bf16' : 'q4_k_m'
+}
+
+export const quantsFor = (engine: Engine, m: Model) =>
+  QUANTS.filter(q => q.engine === engine && (!q.id.includes('mxfp4') || m.moe))
+
+const INITIAL: AppState = {
+  engine: 'llama.cpp',
+  modelId: 'qwen3-32b',
+  quantId: 'q4_k_m',
+  kvTypeId: 'f16',
+  context: DEFAULT_SETTINGS.context,
+  parallel: DEFAULT_SETTINGS.parallel,
+  ubatch: DEFAULT_SETTINGS.ubatch,
+  flashAttn: DEFAULT_SETTINGS.flashAttn,
+  gpuMemUtil: DEFAULT_SETTINGS.gpuMemUtil,
+  batchedTokens: DEFAULT_SETTINGS.batchedTokens,
+  reservedGiB: 0,
+  gpuIds: ['rtx-3090', 'rtx-4090', 'rtx-5090'],
+}
+
+export default function App() {
+  const [state, setState] = useState<AppState>(INITIAL)
+  const update = (patch: Partial<AppState>) => setState(s => normalize({ ...s, ...patch }))
+
+  const model = modelById(state.modelId)!
+  const settings: Settings = useMemo(() => ({
+    engine: state.engine,
+    quant: quantById(state.quantId)!,
+    kvType: kvTypeById(state.kvTypeId)!,
+    context: state.context,
+    parallel: state.parallel,
+    ubatch: state.ubatch,
+    flashAttn: state.flashAttn,
+    gpuMemUtil: state.gpuMemUtil,
+    batchedTokens: state.batchedTokens,
+    reservedBytes: state.reservedGiB * GiB,
+  }), [state])
+  const gpus = state.gpuIds.map(id => gpuById(id)!).filter(Boolean)
+  const p = paramBreakdown(model)
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="app">
+      <header className="top">
         <div>
-          <h1>Get started</h1>
+          <h1>GPU VRAM Visualizer</h1>
           <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+            {model.name}: {(p.total / 1e9).toFixed(1)}B params
+            {model.moe ? `, ${(p.active / 1e9).toFixed(1)}B active per token` : ''}. See what fits, and how fast.
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="seg-ctl" role="group" aria-label="Inference engine">
+          {(['llama.cpp', 'vllm'] as Engine[]).map(e => (
+            <button key={e} aria-pressed={state.engine === e} onClick={() => update({ engine: e })}>
+              {e === 'vllm' ? 'vLLM' : e}
+            </button>
+          ))}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <Controls state={state} model={model} update={update} />
+      <GpuPicker gpuIds={state.gpuIds} onChange={gpuIds => update({ gpuIds })} />
+      <Comparison gpus={gpus} model={model} settings={settings} />
+      <Methodology />
+
+      <footer>
+        Estimates, not guarantees. Real usage varies by driver, build and flags.{' '}
+        <a href="https://github.com/ryanrodemoyer/gpu-visualizer">Source and data on GitHub</a>
+      </footer>
+    </div>
   )
 }
 
-export default App
+/** Keep dependent fields valid when the engine or model changes. */
+function normalize(s: AppState): AppState {
+  const m = modelById(s.modelId) ?? MODELS[0]
+  const quants = quantsFor(s.engine, m)
+  const quantId = quants.some(q => q.id === s.quantId) ? s.quantId : defaultQuantFor(s.engine, m)
+  const kvs = KV_TYPES.filter(k => k.engine === s.engine)
+  const kvTypeId = kvs.some(k => k.id === s.kvTypeId) ? s.kvTypeId : kvs[0].id
+  const context = Math.min(s.context, m.maxContext)
+  const gpuIds = s.gpuIds.filter(id => GPUS.some(g => g.id === id))
+  return { ...s, modelId: m.id, quantId, kvTypeId, context, gpuIds }
+}
